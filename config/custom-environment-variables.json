@@ -1,0 +1,4 @@
+{
+  "jwtPrivateKey": "portfolio_jwtPrivateKey",
+  "DB_Connection": "portfolio_DBEndpoint"
+}

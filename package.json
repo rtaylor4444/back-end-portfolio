@@ -1,0 +1,27 @@
+{
+  "name": "back-end-portfolio",
+  "version": "1.0.0",
+  "description": "Portfolio Website Backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rtaylor4444/back-end-portfolio.git"
+  },
+  "author": "Rob Taylor",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rtaylor4444/back-end-portfolio/issues"
+  },
+  "homepage": "https://github.com/rtaylor4444/back-end-portfolio#readme",
+  "dependencies": {
+    "config": "^3.3.1",
+    "express": "^4.17.1",
+    "mongoose": "^5.9.11"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.3"
+  }
+}
