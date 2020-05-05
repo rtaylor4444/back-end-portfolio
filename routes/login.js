@@ -8,14 +8,13 @@ const { User, UserValidate } = require("../mongoose_models/user");
 router.post("/", async function (req, res) {
   //Ensure user is found
   const user = await User.findOne({ email: req.body.email });
-  if (!user) return res.status(400).message("Invalid email or password");
+  if (!user) return res.status(400).send("Invalid email or password");
   userValidate = new UserValidate(_.pick(req.body, ["email", "password"]));
   await userValidate.validate();
 
   //Verify Password
   const validPassword = await bcrypt.compare(req.body.password, user.password);
-  if (!validPassword)
-    return res.status(400).message("Invalid email or password");
+  if (!validPassword) return res.status(400).send("Invalid email or password");
 
   const token = user.generateAuthToken();
   res.send(token);
