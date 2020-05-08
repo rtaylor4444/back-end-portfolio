@@ -1,8 +1,7 @@
 const auth = require("../middleware/auth");
 const bcrypt = require("bcrypt");
 const _ = require("lodash");
-const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
 const { User } = require("../mongoose_models/user");
 
 //GET requests
