@@ -44,7 +44,7 @@ function updateReply(reply, obj) {
 }
 function updateComment(comment, obj) {
   comment = updateReply(comment, obj);
-  if (obj.replies && obj.replies.length > 0) comment.replies = obj.replies;
+  //if (obj.replies && obj.replies.length > 0) comment.replies = obj.replies;
   return comment;
 }
 module.exports.createModel = createModel;

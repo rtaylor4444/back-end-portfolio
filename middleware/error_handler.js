@@ -6,10 +6,11 @@ function getValidationErrors(err) {
   return validationErrors.length > 0 ? validationErrors : undefined;
 }
 
-//BUG - Different types of errors are not handled properly
 module.exports = function (err, req, res, next) {
   const validationErrors = getValidationErrors(err);
   if (validationErrors) return res.status(400).send(validationErrors);
 
+  //BUG - Other types of errors are not handled properly
+  console.log(err);
   return res.status(500).message("An unexpected error occured");
 };

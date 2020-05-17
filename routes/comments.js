@@ -24,7 +24,7 @@ router.post("/:name/:id", auth, async function (req, res) {
     return res.status(404).send("The comment with the given id was not found");
   comment.replies.push(reply);
   await comment.save();
-  res.send(comment);
+  res.send(reply);
 });
 
 //GET requests
@@ -37,10 +37,10 @@ router.get("/:name", async function (req, res) {
 //Parent Comment
 router.put("/:name", auth, async function (req, res) {
   const Comment = createModel(req.params.name);
-  const commentToEdit = await Comment.findOne({
-    _id: req.body._id,
-    author: req.user.name,
-  });
+  req.body.author = req.user.name;
+  const commentToEdit = await Comment.findOne(
+    _.pick(req.body, ["_id", "author"])
+  );
   //If comment doesnt exist assume the user is trying to edit a comment
   //that is not thiers
   if (!commentToEdit) return res.status(401).send("Access denied");
@@ -62,9 +62,9 @@ router.put("/:name/:id", auth, async function (req, res) {
   if (!oldReply)
     return res.status(404).send("The reply with the given id was not found");
   newReply.isEdited = true;
-  await updateReply(oldReply, newReply).save();
+  updateReply(oldReply, newReply);
   await commentToEdit.save();
-  res.send(commentToEdit);
+  res.send(oldReply);
 });
 
 //DELETE requests
@@ -102,7 +102,7 @@ async function verifyReply(req) {
 }
 async function verifyComment(Comment, req) {
   const comment = new Comment(
-    _.pick(req.body, ["author", "message", "isAdmin"])
+    _.pick(req.body, ["author", "message", "isAdmin", "replies"])
   );
   await comment.validate();
   //Ensure user doesnt put invalid info such as name or admin

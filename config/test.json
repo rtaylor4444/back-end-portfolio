@@ -1,0 +1,4 @@
+{
+  "jwtPrivateKey": "",
+  "DB_Connection": "mongodb://localhost/portfolio-api_tests"
+}
