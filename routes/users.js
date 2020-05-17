@@ -1,8 +1,10 @@
-const auth = require("../middleware/auth");
+const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const _ = require("lodash");
 const router = require("express").Router();
-const { User } = require("../mongoose_models/user");
+const auth = require("../middleware/auth");
+const emailService = require("../services/emailService");
+const { User, unconfirmedUsers } = require("../mongoose_models/user");
 
 //GET requests
 router.get("/me", auth, async function (req, res) {
@@ -21,9 +23,25 @@ router.post("/", async function (req, res) {
   //Hash Password
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
-  await user.save();
+
+  const comfirmationCode = mongoose.Types.ObjectId().toHexString();
+  await emailService.sendConfirmationEmail(comfirmationCode, user.email);
+  unconfirmedUsers.set(comfirmationCode, user);
+  res.send("Email sent successfully!");
+});
+
+router.post("/confirm", async function (req, res) {
+  //Ensure user isn't already registered
+  const code = req.body.code;
+  let user = unconfirmedUsers.get(code);
+  unconfirmedUsers.delete(code);
+  if (!user)
+    return res
+      .status(400)
+      .send("Invalid code or user isn't already registered try again");
 
   const token = user.generateAuthToken();
+  await user.save();
   //Exclude password when sending info to the client
   res
     .header("x-auth-token", token)
