@@ -6,6 +6,12 @@ const auth = require("../middleware/auth");
 const emailService = require("../services/emailService");
 const { User, unconfirmedUsers } = require("../mongoose_models/user");
 
+async function sendConfirmationEmail(email) {
+  const comfirmationCode = mongoose.Types.ObjectId().toHexString();
+  await emailService.sendConfirmationEmail(comfirmationCode, email);
+  return comfirmationCode;
+}
+
 //GET requests
 router.get("/me", auth, async function (req, res) {
   const user = await User.findById(req.user._id).select("-password");
@@ -24,22 +30,36 @@ router.post("/", async function (req, res) {
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
 
-  const comfirmationCode = mongoose.Types.ObjectId().toHexString();
-  await emailService.sendConfirmationEmail(comfirmationCode, user.email);
-  unconfirmedUsers.set(comfirmationCode, user);
-  res.send("Email sent successfully!");
+  const comfirmationCode = await sendConfirmationEmail(user.email);
+  const index = unconfirmedUsers.size;
+  unconfirmedUsers.set(index, { code: comfirmationCode, user });
+  res.send({ index });
+});
+
+router.post("/resend", async function (req, res) {
+  const index = req.body.index;
+  const userInfo = unconfirmedUsers.get(index);
+  if (!userInfo)
+    return res.status(400).send("User isn't registered; try registering again");
+
+  const newCode = await sendConfirmationEmail(userInfo.user.email);
+  unconfirmedUsers.delete(index);
+  unconfirmedUsers.set(index, { code: newCode, user: userInfo.user });
+  res.send("Sent successfully");
 });
 
 router.post("/confirm", async function (req, res) {
   //Ensure user isn't already registered
-  const code = req.body.code;
-  let user = unconfirmedUsers.get(code);
-  unconfirmedUsers.delete(code);
-  if (!user)
-    return res
-      .status(400)
-      .send("Invalid code or user isn't already registered try again");
+  const { index, code: sentCode } = req.body;
+  const userInfo = unconfirmedUsers.get(index);
+  if (!userInfo)
+    return res.status(400).send("User isn't registered; try registering again");
 
+  if (sentCode !== userInfo.code)
+    return res.status(400).send("Invalid confirmation code");
+
+  unconfirmedUsers.delete(index);
+  const user = userInfo.user;
   const token = user.generateAuthToken();
   await user.save();
   //Exclude password when sending info to the client

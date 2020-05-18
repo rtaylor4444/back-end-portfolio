@@ -7,6 +7,8 @@ const jwt = require("jsonwebtoken");
 let server;
 describe("/api/users", () => {
   let user;
+  let code;
+  let index;
   beforeEach(async () => {
     server = require("../../index");
     user = { name: "test", email: "test@test.com", password: "12345" };
@@ -91,7 +93,50 @@ describe("/api/users", () => {
       expect(unconfirmedUsers.size).toBe(mapSize + 1);
     });
 
-    it("should send the client a confirmation string", async () => {
+    it("should send the client an index into the unconfirmed list", async () => {
+      const res = await exec();
+      expect(res.status).toBe(200);
+      expect(res.body.index).toBeDefined();
+    });
+  });
+
+  describe("POST /resend", () => {
+    beforeEach(async () => {
+      const res = await registerUser();
+      code = emailService.sendConfirmationEmail.mock.calls[0][0];
+      index = res.body.index;
+    });
+
+    const exec = async () => {
+      return request(server).post("/api/users/resend").send({ index });
+    };
+
+    it("should return 400 if index is incorrect", async () => {
+      index = -1;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should verify the users email by sending a code", async () => {
+      const res = await exec();
+      expect(res.status).toBe(200);
+      expect(emailService.sendConfirmationEmail).toHaveBeenCalled();
+      expect(emailService.sendConfirmationEmail.mock.calls[1][1]).toMatch(
+        user.email
+      );
+    });
+
+    it("should modify the existing confirmation code", async () => {
+      const oldCode = code;
+      await setTimeout(() => {}, 1000);
+      const res = await exec();
+      expect(res.status).toBe(200);
+      expect(oldCode).not.toMatch(
+        emailService.sendConfirmationEmail.mock.calls[1][0]
+      );
+    });
+
+    it("should send the client an confirmation message", async () => {
       const res = await exec();
       expect(res.status).toBe(200);
       expect(res.text).toBeDefined();
@@ -99,15 +144,21 @@ describe("/api/users", () => {
   });
 
   describe("POST /confirm", () => {
-    let code;
     beforeEach(async () => {
-      await registerUser();
+      const res = await registerUser();
       code = emailService.sendConfirmationEmail.mock.calls[0][0];
+      index = res.body.index;
     });
 
     const exec = async () => {
-      return request(server).post("/api/users/confirm").send({ code });
+      return request(server).post("/api/users/confirm").send({ index, code });
     };
+
+    it("should return 400 if index is incorrect", async () => {
+      index = -1;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
 
     it("should return 400 if code is incorrect", async () => {
       code = "";
@@ -134,6 +185,15 @@ describe("/api/users", () => {
       expect(res.body).toHaveProperty("name", user.name);
       expect(res.body).toHaveProperty("email", user.email);
       expect(res.body).not.toHaveProperty("password");
+    });
+
+    it("should add user to the database", async () => {
+      const res = await exec();
+      const userInDB = await User.findById(res.body._id);
+      expect(userInDB).toHaveProperty("_id");
+      expect(userInDB).toHaveProperty("name", user.name);
+      expect(userInDB).toHaveProperty("email", user.email);
+      expect(userInDB).toHaveProperty("password");
     });
   });
 });
