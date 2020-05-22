@@ -12,5 +12,6 @@ module.exports = function (err, req, res, next) {
 
   //BUG - Other types of errors are not handled properly
   console.log(err);
-  return res.status(500).message("An unexpected error occured");
+  res.status(500).send("An unexpected error occured");
+  exit(1);
 };
