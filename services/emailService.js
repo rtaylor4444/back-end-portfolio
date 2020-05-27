@@ -19,9 +19,20 @@ function sendConfirmationEmail(code, email) {
     html: `<p>Your confirmation code is: <b>${code}</b></p>`,
   });
 }
+
+function sendPasswordResetRequest(email) {
+  return sendEmail({
+    from: "Rob Taylor",
+    to: email,
+    subject: "Reset your Password - Rob Taylor's Portfolio",
+    html: `<p>Click the link below to reset your password</p><a href="localhost:3000/recover">localhost:3000/recover</a>`,
+  });
+}
+
 async function sendEmail(params) {
   return transporter.sendMail(params);
 }
 
+module.exports.sendPasswordResetRequest = sendPasswordResetRequest;
 module.exports.sendConfirmationEmail = sendConfirmationEmail;
 module.exports.sendEmail = sendEmail;

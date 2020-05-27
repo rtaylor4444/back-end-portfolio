@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const config = require("config");
 
 const unconfirmedUsers = new Map();
+const passResetRequests = new Map();
 const emailObj = {
   type: String,
   required: true,
@@ -59,6 +60,7 @@ const UserValidate = mongoose.model(
   })
 );
 
+module.exports.passResetRequests = passResetRequests;
 module.exports.unconfirmedUsers = unconfirmedUsers;
 module.exports.User = User;
 module.exports.UserValidate = UserValidate;

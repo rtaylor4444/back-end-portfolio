@@ -1,17 +1,25 @@
-const { User, unconfirmedUsers } = require("../../mongoose_models/user");
+const mongoose = require("mongoose");
+const {
+  User,
+  unconfirmedUsers,
+  passResetRequests,
+} = require("../../mongoose_models/user");
 const request = require("supertest");
 const emailService = require("../../services/emailService");
 const config = require("config");
 const jwt = require("jsonwebtoken");
+const moment = require("moment");
 
 let server;
 describe("/api/users", () => {
   let user;
   let code;
   let index;
+  let token;
+
   beforeEach(async () => {
     server = require("../../index");
-    user = { name: "test", email: "test@test.com", password: "12345" };
+    user = { name: "test1", email: "test1@test.com", password: "12345" };
     emailService.sendConfirmationEmail = jest.fn();
   });
   afterEach(async () => {
@@ -22,6 +30,29 @@ describe("/api/users", () => {
 
   function registerUser() {
     return request(server).post("/api/users").send(user);
+  }
+
+  async function registerUserProcess() {
+    const res = await registerUser();
+    code = emailService.sendConfirmationEmail.mock.calls[0][0];
+    index = res.body.index;
+  }
+
+  function confirmUser(index, code) {
+    return request(server).post("/api/users/confirm").send({ index, code });
+  }
+
+  async function confirmUserProcess() {
+    const res = await confirmUser(index, code);
+    token = res.header["x-auth-token"];
+    emailService.sendPasswordResetRequest = jest.fn();
+  }
+
+  function sendRecoverPassword() {
+    return request(server)
+      .post("/api/users/recover")
+      .set("x-auth-token", token)
+      .send(user);
   }
 
   describe("POST /", () => {
@@ -145,13 +176,11 @@ describe("/api/users", () => {
 
   describe("POST /confirm", () => {
     beforeEach(async () => {
-      const res = await registerUser();
-      code = emailService.sendConfirmationEmail.mock.calls[0][0];
-      index = res.body.index;
+      await registerUserProcess();
     });
 
     const exec = async () => {
-      return request(server).post("/api/users/confirm").send({ index, code });
+      return await confirmUser(index, code);
     };
 
     it("should return 400 if index is incorrect", async () => {
@@ -194,6 +223,138 @@ describe("/api/users", () => {
       expect(userInDB).toHaveProperty("name", user.name);
       expect(userInDB).toHaveProperty("email", user.email);
       expect(userInDB).toHaveProperty("password");
+    });
+  });
+
+  describe("POST /recover", () => {
+    beforeEach(async () => {
+      await registerUserProcess();
+      await confirmUserProcess();
+    });
+
+    const exec = async () => {
+      return sendRecoverPassword();
+    };
+
+    it("should return 401 if token is not provided", async () => {
+      token = "";
+      const res = await exec();
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 400 if token is invalid", async () => {
+      token = "as";
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if users id is invalid", async () => {
+      user._id = mongoose.Types.ObjectId();
+      token = new User(user).generateAuthToken();
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should send the user an email with a link", async () => {
+      const res = await exec();
+      expect(res.status).toBe(200);
+
+      expect(emailService.sendPasswordResetRequest).toHaveBeenCalled();
+      expect(emailService.sendPasswordResetRequest.mock.calls[0][0]).toMatch(
+        user.email
+      );
+    });
+
+    it("should add user from the password reset list if information is correct", async () => {
+      const mapSize = passResetRequests.size;
+      const res = await exec();
+      expect(res.status).toBe(200);
+      expect(passResetRequests.size).toBe(mapSize + 1);
+    });
+
+    it("should send the client an index into the password reset list", async () => {
+      const res = await exec();
+      expect(res.status).toBe(200);
+      expect(res.body.index).toBeDefined();
+    });
+  });
+
+  describe("POST /reset", () => {
+    beforeEach(async () => {
+      await registerUserProcess();
+      await confirmUserProcess();
+      const res = await sendRecoverPassword();
+      index = res.body.index;
+    });
+
+    const exec = async () => {
+      return request(server)
+        .post("/api/users/reset")
+        .set("x-auth-token", token)
+        .send({ index, password: "23456" });
+    };
+
+    it("should return 401 if token is not provided", async () => {
+      token = "";
+      const res = await exec();
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 400 if token is invalid", async () => {
+      token = "as";
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if users id is invalid", async () => {
+      user._id = mongoose.Types.ObjectId();
+      token = new User(user).generateAuthToken();
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 if an invalid index is sent", async () => {
+      index = 50;
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 403 if a user tries to reset another user's password", async () => {
+      const otherReqIndex = index;
+      user = { name: "test2", email: "test2@test.com", password: "12345" };
+      await registerUserProcess();
+      code = emailService.sendConfirmationEmail.mock.calls[1][0];
+      await confirmUserProcess();
+      index = otherReqIndex;
+
+      const res = await exec();
+      expect(res.status).toBe(403);
+    });
+
+    it("should remove user from the password reset list", async () => {
+      const mapSize = passResetRequests.size;
+      await exec();
+      expect(passResetRequests.size).toBe(mapSize - 1);
+    });
+
+    it("should return 400 if request is sent after the 30 minute time frame", async () => {
+      const passReqInfo = passResetRequests.get(index);
+      passResetRequests.set(index, {
+        user: passReqInfo.user,
+        date: moment().add(-31, "minutes").toDate(),
+      });
+
+      const res = await exec();
+      expect(res.status).toBe(400);
+    });
+
+    it("should modify the users password", async () => {
+      const userId = passResetRequests.get(index).user._id;
+      const prevUserState = await User.findById(userId);
+      const res = await exec();
+      expect(res.status).toBe(200);
+      const userInDB = await User.findById(userId);
+      expect(prevUserState.password).not.toBe(userInDB.password);
     });
   });
 });

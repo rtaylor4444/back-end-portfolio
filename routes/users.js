@@ -4,7 +4,12 @@ const _ = require("lodash");
 const router = require("express").Router();
 const auth = require("../middleware/auth");
 const emailService = require("../services/emailService");
-const { User, unconfirmedUsers } = require("../mongoose_models/user");
+const {
+  User,
+  unconfirmedUsers,
+  passResetRequests,
+} = require("../mongoose_models/user");
+const moment = require("moment");
 
 async function sendConfirmationEmail(email) {
   const comfirmationCode = mongoose.Types.ObjectId().toHexString();
@@ -36,6 +41,21 @@ router.post("/", async function (req, res) {
   res.send({ index });
 });
 
+router.post("/recover", auth, async function (req, res) {
+  //Ensure user is registered
+  let user = await User.findById(req.user._id);
+  if (!user) return res.status(400).send("User is not registered");
+
+  emailService.sendPasswordResetRequest(user.email);
+
+  const index = passResetRequests.size;
+  passResetRequests.set(index, {
+    user: req.user,
+    date: Date.now(),
+  });
+  res.send({ index });
+});
+
 router.post("/resend", async function (req, res) {
   const index = req.body.index;
   const userInfo = unconfirmedUsers.get(index);
@@ -46,6 +66,36 @@ router.post("/resend", async function (req, res) {
   unconfirmedUsers.delete(index);
   unconfirmedUsers.set(index, { code: newCode, user: userInfo.user });
   res.send("Sent successfully");
+});
+
+router.post("/reset", auth, async function (req, res) {
+  //Ensure user is registered
+  const { index, password } = req.body;
+  let user = await User.findById(req.user._id);
+  if (!user) return res.status(400).send("User is not registered");
+
+  //Make sure request exists
+  const passReqInfo = passResetRequests.get(index);
+  if (!passReqInfo)
+    return res.status(400).send("Password reset request not sent; try again");
+
+  //Ensure that this request is infact the users
+  //(we do not want users changing other users passwords)
+  if (passReqInfo.user._id !== req.user._id)
+    return res.status(403).send("Access Denied");
+
+  //The user must send this request within 30 minutes of the /resend request
+  passResetRequests.delete(index);
+  if (moment().diff(passReqInfo.date, "minutes") > 30) {
+    return res.status(400).send("Your request has expired try again.");
+  }
+
+  //Hash password
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(password, salt);
+  user.save();
+
+  res.send("Success");
 });
 
 router.post("/confirm", async function (req, res) {
