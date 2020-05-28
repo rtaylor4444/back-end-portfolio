@@ -86,7 +86,6 @@ router.post("/reset", async function (req, res) {
     return res.status(400).send("Password reset request not sent; try again");
 
   //Make sure correct code was sent
-  console.log(code, passReqInfo.code);
   if (code !== passReqInfo.code)
     return res.status(400).send("Invalid confirmation code");
 
