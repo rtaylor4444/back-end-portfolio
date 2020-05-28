@@ -49,10 +49,7 @@ describe("/api/users", () => {
   }
 
   function sendRecoverPassword() {
-    return request(server)
-      .post("/api/users/recover")
-      .set("x-auth-token", token)
-      .send(user);
+    return request(server).post("/api/users/recover").send(user);
   }
 
   describe("POST /", () => {
@@ -236,31 +233,18 @@ describe("/api/users", () => {
       return sendRecoverPassword();
     };
 
-    it("should return 401 if token is not provided", async () => {
-      token = "";
+    it("should return 401 if users email is invalid", async () => {
+      user.email = "notfound@test.com";
       const res = await exec();
       expect(res.status).toBe(401);
     });
 
-    it("should return 400 if token is invalid", async () => {
-      token = "as";
-      const res = await exec();
-      expect(res.status).toBe(400);
-    });
-
-    it("should return 400 if users id is invalid", async () => {
-      user._id = mongoose.Types.ObjectId();
-      token = new User(user).generateAuthToken();
-      const res = await exec();
-      expect(res.status).toBe(400);
-    });
-
-    it("should send the user an email with a link", async () => {
+    it("should send the user an email with a code", async () => {
       const res = await exec();
       expect(res.status).toBe(200);
 
       expect(emailService.sendPasswordResetRequest).toHaveBeenCalled();
-      expect(emailService.sendPasswordResetRequest.mock.calls[0][0]).toMatch(
+      expect(emailService.sendPasswordResetRequest.mock.calls[0][1]).toMatch(
         user.email
       );
     });
@@ -284,33 +268,20 @@ describe("/api/users", () => {
       await registerUserProcess();
       await confirmUserProcess();
       const res = await sendRecoverPassword();
+      code = emailService.sendPasswordResetRequest.mock.calls[0][0];
       index = res.body.index;
     });
 
     const exec = async () => {
       return request(server)
         .post("/api/users/reset")
-        .set("x-auth-token", token)
-        .send({ index, password: "23456" });
+        .send({ email: user.email, code, index, password: "23456" });
     };
 
-    it("should return 401 if token is not provided", async () => {
-      token = "";
+    it("should return 401 if users email is invalid", async () => {
+      user.email = "notfound@test.com";
       const res = await exec();
       expect(res.status).toBe(401);
-    });
-
-    it("should return 400 if token is invalid", async () => {
-      token = "as";
-      const res = await exec();
-      expect(res.status).toBe(400);
-    });
-
-    it("should return 400 if users id is invalid", async () => {
-      user._id = mongoose.Types.ObjectId();
-      token = new User(user).generateAuthToken();
-      const res = await exec();
-      expect(res.status).toBe(400);
     });
 
     it("should return 400 if an invalid index is sent", async () => {
@@ -319,16 +290,10 @@ describe("/api/users", () => {
       expect(res.status).toBe(400);
     });
 
-    it("should return 403 if a user tries to reset another user's password", async () => {
-      const otherReqIndex = index;
-      user = { name: "test2", email: "test2@test.com", password: "12345" };
-      await registerUserProcess();
-      code = emailService.sendConfirmationEmail.mock.calls[1][0];
-      await confirmUserProcess();
-      index = otherReqIndex;
-
+    it("should return 400 if an invalid code is sent", async () => {
+      code = "";
       const res = await exec();
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(400);
     });
 
     it("should remove user from the password reset list", async () => {
@@ -349,11 +314,10 @@ describe("/api/users", () => {
     });
 
     it("should modify the users password", async () => {
-      const userId = passResetRequests.get(index).user._id;
-      const prevUserState = await User.findById(userId);
+      const prevUserState = await User.findOne({ email: user.email });
       const res = await exec();
       expect(res.status).toBe(200);
-      const userInDB = await User.findById(userId);
+      const userInDB = await User.findOne({ email: user.email });
       expect(prevUserState.password).not.toBe(userInDB.password);
     });
   });

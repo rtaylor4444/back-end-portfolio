@@ -20,12 +20,13 @@ function sendConfirmationEmail(code, email) {
   });
 }
 
-function sendPasswordResetRequest(email) {
+function sendPasswordResetRequest(code, email) {
   return sendEmail({
     from: "Rob Taylor",
     to: email,
     subject: "Reset your Password - Rob Taylor's Portfolio",
-    html: `<p>Click the link below to reset your password</p><a href="localhost:3000/recover">localhost:3000/recover</a>`,
+    html: `<p>Your confirmation code is: <b>${code}</b></p>
+           <p>Enter the above code to confirm that it is you, however this code will expire in 30 minutes</p>`,
   });
 }
 

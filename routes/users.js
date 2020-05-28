@@ -17,6 +17,12 @@ async function sendConfirmationEmail(email) {
   return comfirmationCode;
 }
 
+async function sendPasswordResetEmail(email) {
+  const comfirmationCode = mongoose.Types.ObjectId().toHexString();
+  emailService.sendPasswordResetRequest(comfirmationCode, email);
+  return comfirmationCode;
+}
+
 //GET requests
 router.get("/me", auth, async function (req, res) {
   const user = await User.findById(req.user._id).select("-password");
@@ -41,17 +47,17 @@ router.post("/", async function (req, res) {
   res.send({ index });
 });
 
-router.post("/recover", auth, async function (req, res) {
+router.post("/recover", async function (req, res) {
   //Ensure user is registered
-  let user = await User.findById(req.user._id);
-  if (!user) return res.status(400).send("User is not registered");
+  let user = await User.findOne({ email: req.body.email });
+  if (!user) return res.status(401).send("User is not registered");
 
-  emailService.sendPasswordResetRequest(user.email);
+  const code = await sendPasswordResetEmail(user.email);
 
   const index = passResetRequests.size;
   passResetRequests.set(index, {
-    user: req.user,
     date: Date.now(),
+    code,
   });
   res.send({ index });
 });
@@ -68,21 +74,21 @@ router.post("/resend", async function (req, res) {
   res.send("Sent successfully");
 });
 
-router.post("/reset", auth, async function (req, res) {
+router.post("/reset", async function (req, res) {
   //Ensure user is registered
-  const { index, password } = req.body;
-  let user = await User.findById(req.user._id);
-  if (!user) return res.status(400).send("User is not registered");
+  const { index, password, code, email } = req.body;
+  let user = await User.findOne({ email });
+  if (!user) return res.status(401).send("User is not registered");
 
   //Make sure request exists
   const passReqInfo = passResetRequests.get(index);
   if (!passReqInfo)
     return res.status(400).send("Password reset request not sent; try again");
 
-  //Ensure that this request is infact the users
-  //(we do not want users changing other users passwords)
-  if (passReqInfo.user._id !== req.user._id)
-    return res.status(403).send("Access Denied");
+  //Make sure correct code was sent
+  console.log(code, passReqInfo.code);
+  if (code !== passReqInfo.code)
+    return res.status(400).send("Invalid confirmation code");
 
   //The user must send this request within 30 minutes of the /resend request
   passResetRequests.delete(index);
