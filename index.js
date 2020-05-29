@@ -4,6 +4,7 @@ const app = require("express")();
 //BUG - To remove only to test to ensure the server restarts properly
 require("express-async-errors");
 require("./startup/routes")(app);
+require("./startup/production")(app);
 
 const port = process.env.PORT || 5000;
 let server;

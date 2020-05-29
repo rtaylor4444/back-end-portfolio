@@ -6,7 +6,11 @@
   "scripts": {
     "test": "npm-run-all start-test testJest",
     "testJest": "jest --watchAll --verbose --coverage",
-    "start-test": "set NODE_ENV=test"
+    "start-test": "set NODE_ENV=test",
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "13.7.0"
   },
   "repository": {
     "type": "git",
@@ -20,9 +24,11 @@
   "homepage": "https://github.com/rtaylor4444/back-end-portfolio#readme",
   "dependencies": {
     "bcrypt": "^4.0.1",
+    "compression": "^1.7.4",
     "config": "^3.3.1",
     "express": "^4.17.1",
     "express-async-errors": "^3.1.1",
+    "helmet": "^3.22.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
     "moment": "^2.26.0",
