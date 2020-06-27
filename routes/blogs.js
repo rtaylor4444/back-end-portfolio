@@ -7,7 +7,7 @@ createBlogContent = (blogContent) => {
   const contentArray = [];
   blogContent.forEach((c) => {
     contentArray.push({
-      contentType: c.type,
+      contentType: c.contentType,
       data: c.data,
       imageData: c.imageData,
     });
@@ -62,7 +62,7 @@ router.put("/:id", [auth, admin], async function (req, res) {
 
   blog.category = req.body.category;
   blog.content = content;
-  blog.save();
+  await blog.save();
 
   res.send(blog);
 });

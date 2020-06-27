@@ -44,10 +44,10 @@ describe("/api/blog", () => {
     blog = {
       category: "testing/test1",
       content: [
-        { type: 0, data: ["This is a title"] },
-        { type: 1, data: ["This is a header"] },
-        { type: 2, data: ["This is a paragraph"] },
-        { type: 3, imageData },
+        { contentType: 0, data: ["This is a title"] },
+        { contentType: 1, data: ["This is a header"] },
+        { contentType: 2, data: ["This is a paragraph"] },
+        { contentType: 3, imageData },
       ],
     };
   });
@@ -70,7 +70,7 @@ describe("/api/blog", () => {
     });
 
     it("should return 400 if blog does not begin with a title", async () => {
-      blog.content = [{ type: 1, data: ["This is a header"] }];
+      blog.content = [{ contentType: 1, data: ["This is a header"] }];
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -105,20 +105,20 @@ describe("/api/blog", () => {
         category: "testing/test2",
         date: moment().add(-31, "minutes").toDate(),
         content: [
-          { type: 0, data: ["This is a title"] },
-          { type: 1, data: ["This is a header"] },
-          { type: 2, data: ["This is a paragraph"] },
-          { type: 3, imageData },
+          { contentType: 0, data: ["This is a title"] },
+          { contentType: 1, data: ["This is a header"] },
+          { contentType: 2, data: ["This is a paragraph"] },
+          { contentType: 3, imageData },
         ],
       });
       await postBlog({
         category: "testing/test3",
         date: moment().add(-61, "minutes").toDate(),
         content: [
-          { type: 0, data: ["This is a title"] },
-          { type: 1, data: ["This is a header"] },
-          { type: 2, data: ["This is a paragraph"] },
-          { type: 3, imageData },
+          { contentType: 0, data: ["This is a title"] },
+          { contentType: 1, data: ["This is a header"] },
+          { contentType: 2, data: ["This is a paragraph"] },
+          { contentType: 3, imageData },
         ],
       });
       const res = await request(server).get("/api/blog");
@@ -163,8 +163,8 @@ describe("/api/blog", () => {
       updatedBlog = {
         category: "testing/test1-u",
         content: [
-          { type: 0, data: ["This is a title"] },
-          { type: 3, imageData },
+          { contentType: 0, data: ["This is a title"] },
+          { contentType: 3, imageData },
         ],
       };
     });
@@ -195,7 +195,7 @@ describe("/api/blog", () => {
     });
 
     it("should return 400 if blog does not begin with a title", async () => {
-      blog.content = [{ type: 1, data: ["This is a header"] }];
+      blog.content = [{ contentType: 1, data: ["This is a header"] }];
       const res = await exec();
       expect(res.status).toBe(400);
     });
