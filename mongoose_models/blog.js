@@ -21,7 +21,7 @@ const blogContentSchema = new mongoose.Schema({
 const blogSchema = new mongoose.Schema({
   author: stringObj,
   category: uniqueStringObj,
-  date: { type: Date, default: Date.now() },
+  date: { type: Date },
   content: { type: [blogContentSchema] },
 });
 

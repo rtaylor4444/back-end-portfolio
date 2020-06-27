@@ -12,13 +12,13 @@ const {
 const moment = require("moment");
 
 async function sendConfirmationEmail(email) {
-  const comfirmationCode = mongoose.Types.ObjectId().toHexString();
+  const comfirmationCode = `${Math.floor(Math.random() * 100000)}`;
   await emailService.sendConfirmationEmail(comfirmationCode, email);
   return comfirmationCode;
 }
 
 async function sendPasswordResetEmail(email) {
-  const comfirmationCode = mongoose.Types.ObjectId().toHexString();
+  const comfirmationCode = `${Math.floor(Math.random() * 100000)}`;
   emailService.sendPasswordResetRequest(comfirmationCode, email);
   return comfirmationCode;
 }
@@ -42,6 +42,7 @@ router.post("/", async function (req, res) {
   user.password = await bcrypt.hash(user.password, salt);
 
   const comfirmationCode = await sendConfirmationEmail(user.email);
+  //BUG - generate index differently CANNOT use size
   const index = unconfirmedUsers.size;
   unconfirmedUsers.set(index, { code: comfirmationCode, user });
   res.send({ index });

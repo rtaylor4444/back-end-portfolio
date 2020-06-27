@@ -26,10 +26,17 @@ router.post("/", [auth, admin], async function (req, res) {
   const content = createBlogContent(req.body.content);
   if (!validateBlog(content))
     return res.status(400).send("Your blog MUST start with a title");
+
+  //Check and see if a blog with that category exists
+  const isDuplicate = await Blog.findOne({ category: req.body.category });
+  if (isDuplicate)
+    return res.status(400).send("Your blog cannot have a duplicate category!");
+
+  const date = req.body.date ? req.body.date : Date.now();
   const blog = new Blog({
     author: req.user.name,
     category: req.body.category,
-    date: req.body.date,
+    date,
     content,
   });
   await blog.save();

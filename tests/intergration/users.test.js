@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+//const mongoose = require("mongoose");
 const {
   User,
   unconfirmedUsers,
@@ -156,7 +156,7 @@ describe("/api/users", () => {
 
     it("should modify the existing confirmation code", async () => {
       const oldCode = code;
-      await setTimeout(() => {}, 1000);
+      //await setTimeout(() => {}, 1000);
       const res = await exec();
       expect(res.status).toBe(200);
       expect(oldCode).not.toMatch(

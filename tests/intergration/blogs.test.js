@@ -75,6 +75,12 @@ describe("/api/blog", () => {
       expect(res.status).toBe(400);
     });
 
+    it("should return 400 if catergory already exists in the database", async () => {
+      let res = await exec();
+      res = await exec();
+      expect(res.status).toBe(400);
+    });
+
     it("should return the blog with the correct data", async () => {
       const res = await exec();
       checkBlogData(res.body);
