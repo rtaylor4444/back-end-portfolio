@@ -6,11 +6,7 @@ const { Blog, BlogContent } = require("../mongoose_models/blog");
 createBlogContent = (blogContent) => {
   const contentArray = [];
   blogContent.forEach((c) => {
-    contentArray.push({
-      contentType: c.contentType,
-      data: c.data,
-      imageData: c.imageData,
-    });
+    contentArray.push({ contentType: c.contentType, data: c.data });
   });
   return contentArray;
 };
@@ -75,6 +71,6 @@ router.put("/:id", [auth, admin], async function (req, res) {
 });
 
 //DELETE requests - TODO later (do not want to delete blogs just yet; edit instead)
-router.post("/", [auth, admin], async function (req, res) {});
+router.delete("/", [auth, admin], async function (req, res) {});
 
 module.exports = router;

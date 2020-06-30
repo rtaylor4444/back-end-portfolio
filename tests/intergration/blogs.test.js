@@ -1,6 +1,5 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
-const fs = require("fs");
 const moment = require("moment");
 const { Blog, BlogContent } = require("../../mongoose_models/blog");
 const { User } = require("../../mongoose_models/user");
@@ -10,8 +9,9 @@ describe("/api/blog", () => {
   let token;
   let blog;
   let blogId;
-  //get buffer data that will be sent to our server from the client
-  let imageData = fs.readFileSync(`tests/test.png`);
+  let imageData = `iVBORw0KGgoAAAANSUhEUgAAAAUA
+ AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
+      9TXL0Y4OHwAAAABJRU5ErkJggg==`;
 
   const postBlog = (blogData = blog) => {
     return request(server)
@@ -25,16 +25,15 @@ describe("/api/blog", () => {
     expect(blogData).toHaveProperty("date");
   };
 
-  const checkBlogData = (blogData, length = 4) => {
+  const checkBlogData = (blogData, length = 4, category = "testing/test1") => {
     expect(blogData).toHaveProperty("_id");
-    expect(blogData).toHaveProperty("category", "testing/test1");
+    expect(blogData).toHaveProperty("category", category);
     expect(blogData).toHaveProperty("content");
     const { content } = blogData;
     expect(content.length).toBe(length);
     content.forEach((item) => {
       expect(item).toHaveProperty("contentType");
       expect(item).toHaveProperty("data");
-      if (item.contentType === 3) expect(item).toHaveProperty("imageData");
     });
   };
 
@@ -44,10 +43,10 @@ describe("/api/blog", () => {
     blog = {
       category: "testing/test1",
       content: [
-        { contentType: 0, data: ["This is a title"] },
-        { contentType: 1, data: ["This is a header"] },
-        { contentType: 2, data: ["This is a paragraph"] },
-        { contentType: 3, imageData },
+        { contentType: 0, data: "This is a title" },
+        { contentType: 1, data: "This is a header" },
+        { contentType: 2, data: "This is a paragraph" },
+        { contentType: 3, data: imageData },
       ],
     };
   });
@@ -70,7 +69,7 @@ describe("/api/blog", () => {
     });
 
     it("should return 400 if blog does not begin with a title", async () => {
-      blog.content = [{ contentType: 1, data: ["This is a header"] }];
+      blog.content = [{ contentType: 1, data: "This is a header" }];
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -111,9 +110,9 @@ describe("/api/blog", () => {
         category: "testing/test2",
         date: moment().add(-31, "minutes").toDate(),
         content: [
-          { contentType: 0, data: ["This is a title"] },
-          { contentType: 1, data: ["This is a header"] },
-          { contentType: 2, data: ["This is a paragraph"] },
+          { contentType: 0, data: "This is a title" },
+          { contentType: 1, data: "This is a header" },
+          { contentType: 2, data: "This is a paragraph" },
           { contentType: 3, imageData },
         ],
       });
@@ -121,9 +120,9 @@ describe("/api/blog", () => {
         category: "testing/test3",
         date: moment().add(-61, "minutes").toDate(),
         content: [
-          { contentType: 0, data: ["This is a title"] },
-          { contentType: 1, data: ["This is a header"] },
-          { contentType: 2, data: ["This is a paragraph"] },
+          { contentType: 0, data: "This is a title" },
+          { contentType: 1, data: "This is a header" },
+          { contentType: 2, data: "This is a paragraph" },
           { contentType: 3, imageData },
         ],
       });
@@ -169,8 +168,8 @@ describe("/api/blog", () => {
       updatedBlog = {
         category: "testing/test1-u",
         content: [
-          { contentType: 0, data: ["This is a title"] },
-          { contentType: 3, imageData },
+          { contentType: 0, data: "This is a title" },
+          { contentType: 3, data: imageData },
         ],
       };
     });
@@ -182,18 +181,6 @@ describe("/api/blog", () => {
         .send(blogData);
     };
 
-    const checkUpdatedBlogData = (blogData) => {
-      expect(blogData).toHaveProperty("category", "testing/test1-u");
-      expect(blogData).toHaveProperty("content");
-      const { content } = blogData;
-      expect(content.length).toBe(2);
-      content.forEach((item) => {
-        expect(item).toHaveProperty("contentType");
-        expect(item).toHaveProperty("data");
-        if (item.contentType === 3) expect(item).toHaveProperty("imageData");
-      });
-    };
-
     it("should return 403 if user is not an admin", async () => {
       token = new User({ name: "test", isAdmin: false }).generateAuthToken();
       const res = await exec();
@@ -201,7 +188,7 @@ describe("/api/blog", () => {
     });
 
     it("should return 400 if blog does not begin with a title", async () => {
-      blog.content = [{ contentType: 1, data: ["This is a header"] }];
+      blog.content = [{ contentType: 1, data: "This is a header" }];
       const res = await exec();
       expect(res.status).toBe(400);
     });
@@ -215,7 +202,7 @@ describe("/api/blog", () => {
     it("should return the updated blog with the new data sent", async () => {
       const res = await exec(updatedBlog);
       expect(res.status).toBe(200);
-      checkUpdatedBlogData(res.body);
+      checkBlogData(res.body, 2, "testing/test1-u");
     });
 
     it("should update the blog in the database", async () => {
@@ -223,7 +210,7 @@ describe("/api/blog", () => {
       expect(res.status).toBe(200);
       const blogInDB = await Blog.findById(blogId);
       expect(blogInDB).not.toBeNull();
-      checkUpdatedBlogData(blogInDB);
+      checkBlogData(blogInDB, 2, "testing/test1-u");
     });
   });
 });

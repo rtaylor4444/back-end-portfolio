@@ -15,8 +15,7 @@ const uniqueStringObj = {
 };
 const blogContentSchema = new mongoose.Schema({
   contentType: Number,
-  data: { type: [String] },
-  imageData: { type: Buffer },
+  data: { type: String },
 });
 const blogSchema = new mongoose.Schema({
   author: stringObj,
