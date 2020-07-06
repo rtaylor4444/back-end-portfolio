@@ -3,11 +3,17 @@ const config = require("config");
 
 let transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   auth: {
+    type: "OAuth2",
     user: config.get("email_user"),
     pass: config.get("email_pass"),
+    clientId: config.get("gmail_api_clientID"),
+    clientSecret: config.get("gmail_api_client_secret"),
+    refreshToken: config.get("gmail_refresh_token"),
+    accessToken: config.get("gmail_access_token"),
+    expires: config.get("gmail_expires"),
   },
 });
 
@@ -34,6 +40,12 @@ async function sendEmail(params) {
   return transporter.sendMail(params);
 }
 
+function setGoogleToken(token) {
+  googleToken = token;
+  console.log(googleToken);
+}
+
 module.exports.sendPasswordResetRequest = sendPasswordResetRequest;
 module.exports.sendConfirmationEmail = sendConfirmationEmail;
 module.exports.sendEmail = sendEmail;
+module.exports.setGoogleToken = setGoogleToken;

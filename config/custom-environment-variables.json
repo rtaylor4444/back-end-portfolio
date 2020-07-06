@@ -2,5 +2,10 @@
   "jwtPrivateKey": "portfolio_jwtPrivateKey",
   "DB_Connection": "portfolio_DBEndpoint",
   "email_user": "portfolio_email_user",
-  "email_pass": "portfolio_email_pass"
+  "email_pass": "portfolio_email_pass",
+  "gmail_api_clientID": "portfolio_gmail_api_clientID",
+  "gmail_api_client_secret": "portfolio_gmail_api_client_secret",
+  "gmail_refresh_token": "portfolio_gmail_refresh_token",
+  "gmail_access_token": "portfolio_gmail_access_token",
+  "gmail_expires": "portfolio_gmail_expires"
 }
